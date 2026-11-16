@@ -30,19 +30,20 @@ Every push is built on GitHub's Windows machines. Open the repository's
 
 ## Building on Windows
 
-1. Install **Visual Studio 2022 Community** with the "Desktop development with
-   C++" workload (this includes CMake).
+1. Install **Visual Studio Community** (2022 or newer) with the "Desktop
+   development with C++" workload (this includes CMake).
 2. Install **Git for Windows**.
-3. Open the "x64 Native Tools Command Prompt for VS 2022" and run:
+3. Open the "x64 Native Tools Command Prompt" for your Visual Studio and run:
 
    ```bat
    git clone https://github.com/Eetit/ETLimit.git
    cd ETLimit
-   cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+   cmake -S . -B build -A x64
    cmake --build build --config Release --parallel
    ```
 
-   The first configure downloads JUCE and Catch2 (a few minutes).
+   CMake picks the newest Visual Studio installed. The first configure
+   downloads JUCE and Catch2 (a few minutes).
 4. The plugin is at `build\plugin\ETLimit_artefacts\Release\VST3\ETLimit.vst3`.
 5. Optional, to run the tests: install Python 3, then
    `python -m pip install -r tests/reference/requirements.txt` and
