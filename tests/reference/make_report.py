@@ -53,6 +53,17 @@ def main():
     ]
     totals = {"PASS": 0, "FAIL": 0, "NOT RUN": 0}
 
+    import os
+    if a.junit and not os.path.exists(a.junit):
+        totals["NOT RUN"] += 1
+        lines += ["## C++ unit tests and test suites (ctest)", "", "**NOT RUN** (no ctest results found)", ""]
+        a.junit = None
+    a.json = [p for p in a.json if os.path.exists(p)]
+    if a.pluginval and not os.path.exists(a.pluginval):
+        totals["NOT RUN"] += 1
+        lines += ["## pluginval", "", "**NOT RUN** (no log found)", ""]
+        a.pluginval = None
+
     if a.junit:
         root = ET.parse(a.junit).getroot()
         lines += ["## C++ unit tests and test suites (ctest)", "",
