@@ -1,0 +1,111 @@
+name: Build and validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows (VST3, MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python reference tools
+        run: python -m pip install -r tests/reference/requirements.txt
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Unit and reference tests
+        run: ctest --test-dir build -C Release --output-on-failure --output-junit qa/ctest.xml
+
+      - name: pluginval (strictness 10)
+        shell: bash
+        run: |
+          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip
+          7z x -y pluginval.zip > /dev/null
+          set +e
+          ./pluginval.exe --strictness-level 10 --validate-in-process --timeout-ms 600000 \
+            --validate "build/plugin/ETLimit_artefacts/Release/VST3/ETLimit.vst3" > build/qa/pluginval.log 2>&1
+          code=$?
+          echo "pluginval exit $code" >> build/qa/pluginval.log
+          tail -n 30 build/qa/pluginval.log
+          exit $code
+
+      - name: QA report
+        if: always()
+        shell: bash
+        run: |
+          shopt -s nullglob
+          jsons=(build/qa/*.json)
+          python tests/reference/make_report.py --stage "CI Windows" --junit build/qa/ctest.xml \
+            --json "${jsons[@]}" --pluginval build/qa/pluginval.log --out build/qa/QA_REPORT.md || true
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: ETLimit-VST3-Windows
+          path: build/plugin/ETLimit_artefacts/Release/VST3/ETLimit.vst3
+
+      - name: Upload QA results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QA-Windows
+          path: build/qa
+
+  linux:
+    name: Linux (tests + reference cross-checks)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libasound2-dev libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libgl1-mesa-dev \
+            xvfb ffmpeg libebur128-dev
+          python3 -m pip install --break-system-packages -r tests/reference/requirements.txt
+
+      - name: Configure and build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+
+      - name: Unit and reference tests
+        run: ctest --test-dir build --output-on-failure --output-junit qa/ctest.xml
+
+      - name: pluginval (strictness 10)
+        run: |
+          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Linux.zip
+          unzip -o -q pluginval.zip
+          set +e
+          xvfb-run -a ./pluginval --strictness-level 10 --validate-in-process --timeout-ms 600000 \
+            --validate build/plugin/ETLimit_artefacts/Release/VST3/ETLimit.vst3 > build/qa/pluginval.log 2>&1
+          code=$?
+          echo "pluginval exit $code" >> build/qa/pluginval.log
+          tail -n 30 build/qa/pluginval.log
+          exit $code
+
+      - name: QA report
+        if: always()
+        run: |
+          python3 tests/reference/make_report.py --stage "CI Linux" --junit build/qa/ctest.xml \
+            --json build/qa/*.json --pluginval build/qa/pluginval.log --out build/qa/QA_REPORT.md || true
+
+      - name: Upload QA results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: QA-Linux
+          path: build/qa

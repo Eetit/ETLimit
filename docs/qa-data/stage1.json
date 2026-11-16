@@ -1,0 +1,235 @@
+{
+  "suite": "stage1_render",
+  "executed_utc": "2026-11-16T21:12:25+00:00",
+  "platform": "Linux x86_64 / Python 3.13.18",
+  "checks": [
+    {
+      "name": "Bit-exact pass-through at 0 dB",
+      "conditions": "5 signals x 5 rates x 5 block patterns (32, 64, 2048, random 1-2048, 4096 > announced 512)",
+      "expected": "output identical to input in every bit; latency 0",
+      "actual": "125/125 identical",
+      "status": "PASS",
+      "data": {
+        "cases": 125,
+        "failures": []
+      }
+    },
+    {
+      "name": "Input gain accuracy",
+      "conditions": "white noise, 48 kHz, random blocks, gain -12..+36 dB set before playback",
+      "expected": "gain error <= 0.0001 dB; per-sample error <= float32 rounding (1.2e-7 relative)",
+      "actual": "worst gain error 0.0000005 dB; worst per-sample relative error 4.72e-08",
+      "status": "PASS",
+      "data": {
+        "rows": [
+          {
+            "gain_db": -12.0,
+            "measured_db": -11.999999871441885,
+            "max_rel_err": 4.634419393006197e-08
+          },
+          {
+            "gain_db": -6.0,
+            "measured_db": -5.999999934854481,
+            "max_rel_err": 4.645118026319921e-08
+          },
+          {
+            "gain_db": 3.0,
+            "measured_db": 3.0000004795367294,
+            "max_rel_err": 3.296429949751166e-08
+          },
+          {
+            "gain_db": 12.0,
+            "measured_db": 11.999999878293961,
+            "max_rel_err": 4.677069750167478e-08
+          },
+          {
+            "gain_db": 24.0,
+            "measured_db": 23.999999810841967,
+            "max_rel_err": 4.70079249519941e-08
+          },
+          {
+            "gain_db": 36.0,
+            "measured_db": 36.00000028302356,
+            "max_rel_err": 4.722981242110532e-08
+          }
+        ]
+      }
+    },
+    {
+      "name": "Input gain automation is a smooth ramp",
+      "conditions": "0 -> +12 dB step at an arbitrary sample, random host blocks, all rates",
+      "expected": "monotonic linear ramp, completes in 20 ms, no step larger than ideal",
+      "actual": "44100: settled after 882 samples (expected 882); 48000: settled after 960 samples (expected 960); 88200: settled after 1764 samples (expected 1764); 96000: settled after 1920 samples (expected 1920); 192000: settled after 3840 samples (expected 3840)",
+      "status": "PASS",
+      "data": {
+        "rows": [
+          {
+            "fs": 44100,
+            "ramp_samples_expected": 882,
+            "settled_at_offset": 881,
+            "max_step": 0.0033800601959228516,
+            "ideal_step": 0.003379899892896794,
+            "ok": true
+          },
+          {
+            "fs": 48000,
+            "ramp_samples_expected": 960,
+            "settled_at_offset": 959,
+            "max_step": 0.0031054019927978516,
+            "ideal_step": 0.0031052830265989296,
+            "ok": true
+          },
+          {
+            "fs": 88200,
+            "ramp_samples_expected": 1764,
+            "settled_at_offset": 1763,
+            "max_step": 0.0016901493072509766,
+            "ideal_step": 0.001689949946448397,
+            "ok": true
+          },
+          {
+            "fs": 96000,
+            "ramp_samples_expected": 1920,
+            "settled_at_offset": 1919,
+            "max_step": 0.0015528202056884766,
+            "ideal_step": 0.0015526415132994648,
+            "ok": true
+          },
+          {
+            "fs": 192000,
+            "ramp_samples_expected": 3840,
+            "settled_at_offset": 3839,
+            "max_step": 0.0007765293121337891,
+            "ideal_step": 0.0007763207566497324,
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Bypass is exact and click-free",
+      "conditions": "1 kHz sine, +6 dB gain, bypass on then off at arbitrary samples, random blocks, all rates",
+      "expected": "bit-exact dry signal while bypassed; no sample-to-sample jump beyond signal slope + crossfade slope",
+      "actual": "44100: dry exact=True, max jump 0.14202 <= 0.14327; 48000: dry exact=True, max jump 0.13022 <= 0.13163; 88200: dry exact=True, max jump 0.07105 <= 0.07163; 96000: dry exact=True, max jump 0.06525 <= 0.06581; 192000: dry exact=True, max jump 0.03264 <= 0.03291",
+      "status": "PASS",
+      "data": {
+        "rows": [
+          {
+            "fs": 44100,
+            "exact_dry_while_bypassed": true,
+            "max_jump": 0.1420181691646576,
+            "allowed_jump": 0.143266769760527,
+            "ok": true
+          },
+          {
+            "fs": 48000,
+            "exact_dry_while_bypassed": true,
+            "max_jump": 0.13021698594180922,
+            "allowed_jump": 0.13162634471748416,
+            "ok": true
+          },
+          {
+            "fs": 88200,
+            "exact_dry_while_bypassed": true,
+            "max_jump": 0.07105414569377899,
+            "allowed_jump": 0.0716333848802635,
+            "ok": true
+          },
+          {
+            "fs": 96000,
+            "exact_dry_while_bypassed": true,
+            "max_jump": 0.06524819880811554,
+            "allowed_jump": 0.06581317235874208,
+            "ok": true
+          },
+          {
+            "fs": 192000,
+            "exact_dry_while_bypassed": true,
+            "max_jump": 0.03264157846657616,
+            "allowed_jump": 0.03290658617937104,
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "Reported latency equals measured latency",
+      "conditions": "impulse at sample 1000, all rates, processed and bypassed",
+      "expected": "measured impulse delay == reported latency",
+      "actual": "10/10 match (reported [0])",
+      "status": "PASS",
+      "data": {
+        "rows": [
+          {
+            "fs": 44100,
+            "bypass": false,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 44100,
+            "bypass": true,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 48000,
+            "bypass": false,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 48000,
+            "bypass": true,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 88200,
+            "bypass": false,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 88200,
+            "bypass": true,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 96000,
+            "bypass": false,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 96000,
+            "bypass": true,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 192000,
+            "bypass": false,
+            "reported": 0,
+            "measured": 0
+          },
+          {
+            "fs": 192000,
+            "bypass": true,
+            "reported": 0,
+            "measured": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "NaN/Inf input is neutralised",
+      "conditions": "440 Hz sine with NaN, +Inf, -Inf injected, +6 dB gain",
+      "expected": "output all finite, bad samples -> 0, counter == 3",
+      "actual": "finite=True, zeroed=True, counter=3",
+      "status": "PASS",
+      "data": {}
+    }
+  ]
+}
